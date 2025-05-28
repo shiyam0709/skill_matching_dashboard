@@ -19,26 +19,44 @@ if "master_skill_file" not in st.session_state:
     st.session_state.subcon_file = None
 
 
+def validate_file(uploaded_file, file_description):
+    allowed_types = [
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","xlsx"
+]
+    if uploaded_file is None:
+        return False
+    if uploaded_file.type not in allowed_types:
+        st.error(
+            f"❌ The file '{uploaded_file.name}' is not supported. "
+            f"Please upload a valid Excel file (.xlsx) for {file_description}."
+        )
+        return False
+    return True
+
 # --- Upload Page ---
 def upload_page():
     st.title("📤 Upload Required Excel Files")
     st.markdown("Please upload the required files to continue:")
 
-    bench_demand = st.file_uploader("Upload Bench & Demand Excel File", type=["xlsx"], key="bench_demand")
-    subcon = st.file_uploader("Upload Sub-Con Candidate Report Excel File", type=["xlsx"], key="Subcon")
-    master_skill = st.file_uploader("Master Skills Excel File", type=["xlsx"], key="master_skill")
+    bench_demand = st.file_uploader("Upload Bench & Demand Excel File", key="bench_demand")
+    is_bench_demand_valid = validate_file(bench_demand, "Bench & Demand")
+    subcon = st.file_uploader("Upload Sub-Con Candidate Report Excel File", key="Subcon")
+    is_subcon_valid = validate_file(subcon, "Sub-Con Candidate Report")
+    master_skill = st.file_uploader("Master Skills Excel File", key="master_skill")
+    is_master_skill_valid = validate_file(master_skill, "Master Skills")
 
-    if bench_demand and subcon and master_skill:
+
+
+    if is_bench_demand_valid and is_subcon_valid and is_master_skill_valid:
         st.session_state.bench_demand_file = bench_demand
         st.session_state.subcon_file = subcon
         st.session_state.master_skill_file = master_skill
         st.session_state.uploaded = True
         st.rerun()
 
-
 def to_excel(df):
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+    with pd.ExcelWriter(output, engine = openpyxl) as writer:
         df.to_excel(writer, index=False, sheet_name='Sheet1')
     processed_data = output.getvalue()
     return processed_data
@@ -417,8 +435,6 @@ def main_app():
                 # Display DataFrame (even if empty, optionally)
                 st.dataframe(filtered_combined_display, use_container_width=True, hide_index=True)
 
-
-
     except Exception as e:
         st.error(f"🚨 Error occurred while reading files: {e}")
 
@@ -427,7 +443,7 @@ def reset_files():
     st.session_state.uploaded = False
     st.session_state.bench_demand_file = None
     st.session_state.subcon_file = None
-    st.rerun()
+    upload_page()
 
 # --- App Router ---
 if not st.session_state.uploaded:
